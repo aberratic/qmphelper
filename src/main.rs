@@ -53,21 +53,24 @@ pub async fn main() -> io::Result<()> {
         "Failed to connect to {}: {}",
         args.unixsocket.clone()
     );
-    info!("Stream capabilities: {:#?}", stream.capabilities);
+    debug!("Stream capabilities: {:#?}", stream.capabilities);
 
     debug!("Negotiating QMP protocol");
     let stream = handle_errors!(
         stream.negotiate().await,
         "Failed to negotiate QMP protocol: {}"
     );
+    debug!("Finished negotiating QMP protocol");
 
     let (qmp, handle) = stream.spawn_tokio();
+    debug!("Spawned QMP stream");
 
     match args.command {
         Subcommands::QueryBlockStats(args) => {
             let query = qapi::qmp::query_blockstats {
                 query_nodes: args.query_nodes,
             };
+            debug!("Executing query: {:#?}", query);
             let response = qmp.execute(query).await?;
             println!("{:#?}", response);
         }
