@@ -1,8 +1,9 @@
+use clap::{Args, Parser, Subcommand};
+use futures::StreamExt;
 use subcommands::query_block_stats::QueryBlockStatsArguments;
 use tokio::io;
-use clap::{Parser, Subcommand, Args};
-use futures::StreamExt;
-
+use tracing::{debug, error, info, instrument, span, trace, warn, Level};
+use tracing_subscriber;
 mod subcommands;
 
 #[derive(Parser, Debug)]
@@ -19,19 +20,52 @@ enum Subcommands {
     QueryBlockStats(QueryBlockStatsArguments),
 }
 
+macro_rules! handle_errors {
+    ($result:expr, $errormessage:expr) => {
+        match $result {
+            Ok(a) => a,
+            Err(error) => {
+                error!($errormessage, error);
+                std::process::exit(1);
+            }
+        }
+    };
+    ($result:expr, $errormessage:expr, $($additionals:tt)*) => {
+        match $result {
+            Ok(a) => a,
+            Err(error) => {
+                error!($errormessage, error, ($($additionals)*));
+                std::process::exit(1);
+            }
+        }
+    };
+}
+
 #[tokio::main]
 pub async fn main() -> io::Result<()> {
+    tracing_subscriber::fmt::init();
+
     let args = Arguments::parse();
-    let stream = 
-        qapi::futures::QmpStreamTokio::open_uds(args.unixsocket).await?;
-    let stream = stream.negotiate().await?;
+
+    debug!("Connecting to {}", args.unixsocket.clone());
+    let stream = handle_errors!(
+        qapi::futures::QmpStreamTokio::open_uds(args.unixsocket.clone()).await,
+        "Failed to connect to {}: {}",
+        args.unixsocket.clone()
+    );
+
+    debug!("Negotiating QMP protocol");
+    let stream = handle_errors!(
+        stream.negotiate().await,
+        "Failed to negotiate QMP protocol: {}"
+    );
+
     let (qmp, mut events) = stream.into_parts();
 
     match args.command {
         Subcommands::QueryBlockStats(args) => {
             let query = qapi::qmp::query_blockstats {
                 query_nodes: args.query_nodes,
-                
             };
             let response = qmp.execute(query).await?;
             println!("{:#?}", response);
