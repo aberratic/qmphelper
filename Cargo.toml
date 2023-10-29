@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.4.6", features = ["derive"] }
-qapi = { version = "0.14", features = ["qga", "qmp", "async-tokio-all", "qapi-qmp", "async-tokio-net"]}
+qapi = { version = "0.13.0", features = ["qga", "qmp", "async-tokio-all", "qapi-qmp", "async-tokio-net"]}
 tokio = { version = "1.33", features = ["macros", "rt-multi-thread" ] }
 futures = { version = "0.3" }
 tracing = { version = "0.1" }
