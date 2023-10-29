@@ -32,6 +32,8 @@ enum Subcommands {
     /// Query the BlockStats for all virtual block devices
     QueryBlockStats(QueryBlockStatsArguments),
     QueryBlockJobs,
+    /// Get a list of BlockInfo for all virtual block devices.
+    QueryBlock,
     BlockJobComplete(BlockJobCompleteArguments),
 }
 
@@ -122,6 +124,12 @@ pub async fn main() -> io::Result<()> {
             let query = qapi::qmp::block_job_complete {
                 device: args.device,
             };
+            debug!("Executing query: {:#?}", query);
+            let response = qmp.execute(query).await?;
+            println!("{:#?}", response);
+        }
+        Subcommands::QueryBlock => {
+            let query = qapi::qmp::query_block {};
             debug!("Executing query: {:#?}", query);
             let response = qmp.execute(query).await?;
             println!("{:#?}", response);
